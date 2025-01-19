@@ -3,6 +3,7 @@ pipeline {
 
     tools {
         maven 'maven'
+        git 'git'
           
     }
 
@@ -13,14 +14,83 @@ pipeline {
     }
 
     stages {
-        // Étape 1 : Intégration avec GitHub (Webhook déjà configuré)
+       
         stage('Git Checkout') {
             steps {
                  checkout scm
-                //git url: 'https://github.com/username/repository.git', branch: 'main'
+            }
+        }
+    stage('Compile and Unit Tests') {
+            steps {
+                echo "Compiling the project and running unit tests..."
+                sh './mvnw clean install'
             }
         }
 
+        stage('Static Code Analysis') {
+            steps {
+                echo "Running SonarQube analysis..."
+                withSonarQubeEnv('SonarQubeServer') {
+                    sh './mvnw sonar:sonar'
+                }
+            }
+        }
+
+        stage('Dependency Audit') {
+            steps {
+                echo "Running Dependency-Check..."
+                sh 'dependency-check --scan ./ --format HTML --out ./dependency-check-report.html'
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'dependency-check-report.html', allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Dynamic Security Tests') {
+            steps {
+                echo "Running OWASP ZAP tests..."
+                sh 'zap-baseline.py -t http://localhost:8080 -r zap-report.html'
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'zap-report.html', allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                echo "Building Docker image..."
+                sh 'docker build -t $DOCKER_IMAGE .'
+            }
+        }
+
+        stage('Scan Docker Image') {
+            steps {
+                echo "Scanning Docker image for vulnerabilities..."
+                sh 'trivy image $DOCKER_IMAGE > trivy-report.txt'
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'trivy-report.txt', allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Deploy to Secure Environment') {
+            steps {
+                echo "Deploying Docker container..."
+                sh '''
+                docker run -d --name my-app -p 8080:8080 $DOCKER_IMAGE
+                '''
+            }
+        }
+    }
+
+  
+}
     
     post {
         always {
