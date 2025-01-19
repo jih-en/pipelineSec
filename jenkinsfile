@@ -26,7 +26,7 @@ pipeline {
             steps {
                 script {
                     // Utiliser Maven pour compiler le projet et exécuter les tests unitaires
-                    sh 'mvn clean install -DskipTests=false'
+                    bat 'mvn clean install -DskipTests=false'
                 }
             }
         }
@@ -34,7 +34,7 @@ pipeline {
         stage('SonarQube Analysis') { // Ajoutez ce stage ici
             steps {
                 withSonarQubeEnv('SonarQube') {
-                    sh 'mvn sonar:sonar'
+                    bat 'mvn sonar:sonar'
                 }
             }
         }
@@ -45,7 +45,7 @@ pipeline {
             steps {
                 script {
                     // Exécuter Dependency-Check pour analyser les dépendances
-                    sh 'mvn org.owasp:dependency-check-maven:check'
+                    bat 'mvn org.owasp:dependency-check-maven:check'
                 }
             }
         }
