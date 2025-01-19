@@ -21,8 +21,7 @@ pipeline {
             }
         }
 
-       
-
+    
     post {
         always {
             // Action à effectuer après l'exécution du pipeline, comme nettoyer les ressources
