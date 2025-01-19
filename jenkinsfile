@@ -28,7 +28,38 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                echo 'Deployment steps here...'
+              sh '''
+                docker build -t my-application .
+                docker run -d -p 8080:8080 --name my-application-container my-application
+                '''
+            }
+        }
+
+        stage('OWASP ZAP Security Test') { // Ajoutez ce stage ici
+            steps {
+                // Lancer OWASP ZAP
+                zapStart(executable: 'zap.sh', host: 'localhost', port: '8081')
+
+                // Scanner l'application
+                zapScan(target: 'http://localhost:8080', scanPolicyName: 'Default Policy')
+
+                // Générer un rapport HTML
+                zapReport(reportType: 'HTML', reportName: 'zap-report.html')
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    sh 'mvn sonar:sonar'
+                }
+            }
+        }
+
+        stage('Cleanup') {
+            steps {
+                // Nettoyez les ressources (arrêter les conteneurs, etc.)
+                sh 'docker stop my-application-container && docker rm my-application-container'
             }
         }
     }
