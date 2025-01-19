@@ -2,10 +2,7 @@ pipeline {
     agent any
 
     tools {
-        maven 'Maven 3.8.8'  // Assurez-vous que ce nom correspond à la configuration dans Jenkins
-        sonar 'SonarQube-scanner'  // Assurez-vous que ce nom correspond à la configuration de SonarQube
-        dependencyCheck 'dependency-Check'  // Assurez-vous que ce nom correspond à la configuration de Dependency-Check
-        git 'git'  // Assurez-vous que ce nom correspond à la configuration de Git
+        maven 'Maven'
     }
 
     environment {
@@ -18,8 +15,7 @@ pipeline {
         // Étape 1 : Intégration avec GitHub (Webhook déjà configuré)
         stage('Git Checkout') {
             steps {
-                // Cloner le repository Git depuis GitHub
-                checkout scm
+                git url: 'https://github.com/username/repository.git', branch: 'main'
             }
         }
 
@@ -33,20 +29,14 @@ pipeline {
             }
         }
 
-        // Étape 3 : Analyse de qualité du code avec SonarQube
-        stage('SonarQube Analysis') {
+        stage('SonarQube Analysis') { // Ajoutez ce stage ici
             steps {
-                script {
-                    // Analyse avec SonarQube
-                    sh """
-                        mvn sonar:sonar \
-                            -Dsonar.projectKey=my-project \
-                            -Dsonar.host.url=$SONARQUBE_URL \
-                            -Dsonar.login=$SONARQUBE_TOKEN
-                    """
+                withSonarQubeEnv('SonarQube') {
+                    sh 'mvn sonar:sonar'
                 }
             }
         }
+        
 
         // Étape 4 : Analyse de vulnérabilités (Dependency-Check)
         stage('Dependency-Check') {
