@@ -2,10 +2,10 @@ pipeline {
     agent any
 
     tools {
-        maven 'Maven 3.8.8'  // Nom de votre installation Maven 3.8.8
-        sonar 'SonarQube-scanner'  // Nom de votre configuration SonarQube
-        dependencyCheck 'dependency-Check'  // Nom de votre installation Dependency-Check
-        git 'git'  // Nom de votre configuration Git
+        maven 'Maven 3.8.8'  // Assurez-vous que ce nom correspond à la configuration dans Jenkins
+        sonar 'SonarQube-scanner'  // Assurez-vous que ce nom correspond à la configuration de SonarQube
+        dependencyCheck 'dependency-Check'  // Assurez-vous que ce nom correspond à la configuration de Dependency-Check
+        git 'git'  // Assurez-vous que ce nom correspond à la configuration de Git
     }
 
     environment {
