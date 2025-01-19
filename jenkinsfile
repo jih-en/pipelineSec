@@ -1,57 +1,76 @@
 pipeline {
     agent any
 
+    tools {
+        maven 'Maven 3.8.8'  // Nom de votre installation Maven 3.8.8
+        sonar 'SonarQube-scanner'  // Nom de votre configuration SonarQube
+        dependencyCheck 'dependency-Check'  // Nom de votre installation Dependency-Check
+        git 'git'  // Nom de votre configuration Git
+    }
+
+    environment {
+        // Variables d'environnement pour SonarQube
+        SONARQUBE_URL = 'http://sonarqube:9000'  // URL de votre instance SonarQube
+        SONARQUBE_TOKEN = credentials('sonar-token') // Token d'authentification pour SonarQube
+    }
 
     stages {
-        stage('Checkout Code') {
+        // Étape 1 : Intégration avec GitHub (Webhook déjà configuré)
+        stage('Git Checkout') {
             steps {
-                git url: 'https://github.com/jih-en/pipelineSec.git', branch: 'main'
+                // Cloner le repository Git depuis GitHub
+                checkout scm
             }
         }
 
-        stage('Build & Unit Tests') {
+        // Étape 2 : Compilation et tests unitaires
+        stage('Build & Test') {
             steps {
-                sh 'mvn clean package'
-            }
-        }
-
-        stage('SonarQube Analysis') { // Ajoutez ce stage ici
-            steps {
-                withSonarQubeEnv('SonarQube-scanner') {
-                    sh 'mvn sonar:sonar'
+                script {
+                    // Utiliser Maven pour compiler le projet et exécuter les tests unitaires
+                    sh 'mvn clean install -DskipTests=false'
                 }
             }
         }
 
-        stage('Deploy') {
+        // Étape 3 : Analyse de qualité du code avec SonarQube
+        stage('SonarQube Analysis') {
             steps {
-              sh '''
-                docker build -t my-application .
-                docker run -d -p 8080:8080 --name my-application-container my-application
-                '''
+                script {
+                    // Analyse avec SonarQube
+                    sh """
+                        mvn sonar:sonar \
+                            -Dsonar.projectKey=my-project \
+                            -Dsonar.host.url=$SONARQUBE_URL \
+                            -Dsonar.login=$SONARQUBE_TOKEN
+                    """
+                }
             }
         }
 
-        stage('OWASP ZAP Security Test') { // Ajoutez ce stage ici
+        // Étape 4 : Analyse de vulnérabilités (Dependency-Check)
+        stage('Dependency-Check') {
             steps {
-                // Lancer OWASP ZAP
-                zapStart(executable: 'zap.sh', host: 'localhost', port: '8081')
-
-                // Scanner l'application
-                zapScan(target: 'http://localhost:8080', scanPolicyName: 'Default Policy')
-
-                // Générer un rapport HTML
-                zapReport(reportType: 'HTML', reportName: 'zap-report.html')
+                script {
+                    // Exécuter Dependency-Check pour analyser les dépendances
+                    sh 'mvn org.owasp:dependency-check-maven:check'
+                }
             }
         }
+    }
 
-      
-
-        stage('Cleanup') {
-            steps {
-                // Nettoyez les ressources (arrêter les conteneurs, etc.)
-                sh 'docker stop my-application-container && docker rm my-application-container'
-            }
+    post {
+        always {
+            // Action à effectuer après l'exécution du pipeline, comme nettoyer les ressources
+            cleanWs()  // Nettoyer l'espace de travail Jenkins
+        }
+        success {
+            // Action à effectuer si le pipeline réussit
+            echo 'Pipeline executed successfully!'
+        }
+        failure {
+            // Action à effectuer en cas d'échec
+            echo 'Pipeline failed!'
         }
     }
 }
