@@ -1,11 +1,35 @@
-node {
-  stage('SCM') {
-    checkout scm
-  }
-  stage('SonarQube Analysis') {
-    def mvn = tool 'Default Maven';
-    withSonarQubeEnv() {
-      sh "${mvn}/bin/mvn clean verify sonar:sonar -Dsonar.projectKey=pipeline"
+pipeline {
+    agent any
+
+    tools {
+        maven 'Maven' // Assurez-vous que Maven est configuré dans Jenkins
     }
-  }
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git url: 'https://github.com/username/repository.git', branch: 'main'
+            }
+        }
+
+        stage('Build & Unit Tests') {
+            steps {
+                sh 'mvn clean package'
+            }
+        }
+
+        stage('SonarQube Analysis') { // Ajoutez ce stage ici
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    sh 'mvn sonar:sonar'
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo 'Deployment steps here...'
+            }
+        }
+    }
 }
